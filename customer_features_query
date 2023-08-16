@@ -1,0 +1,82 @@
+CREATE OR REPLACE TABLE thelook-product-recom-1.theLook.customer_features AS
+WITH
+  LifetimeTotalValue AS (
+    SELECT
+      user_id,
+      SUM(sale_price) AS lifetime_total_value
+    FROM
+      thelook-product-recom-1.theLook.order_items
+    GROUP BY
+      user_id
+  ),
+  TotalOrderCount AS (
+    SELECT
+      user_id,
+      COUNT(DISTINCT order_id) AS total_order_count
+    FROM
+      thelook-product-recom-1.theLook.orders
+    GROUP BY
+      user_id
+  ),
+  FavoriteCategory AS (
+    SELECT
+      user_id,
+      ARRAY_AGG(category ORDER BY category_count DESC LIMIT 1)[OFFSET(0)] AS favorite_category
+    FROM (
+      SELECT
+        oi.user_id,
+        p.category,
+        COUNT(*) AS category_count
+      FROM
+        thelook-product-recom-1.theLook.order_items oi
+      JOIN
+        thelook-product-recom-1.theLook.products p
+        ON oi.product_id = p.id
+      GROUP BY
+        oi.user_id, p.category
+    )
+    GROUP BY
+      user_id
+  ),
+  FavoriteBrowser AS (
+    SELECT
+      user_id,
+      ARRAY_AGG(browser ORDER BY browser_count DESC LIMIT 1)[OFFSET(0)] AS favorite_browser
+    FROM (
+      SELECT
+        user_id,
+        browser,
+        COUNT(*) AS browser_count
+      FROM
+        thelook-product-recom-1.theLook.events
+      GROUP BY
+        user_id, browser
+    )
+    GROUP BY
+      user_id
+  )
+SELECT
+  u.id AS user_id,
+  u.gender,
+  u.age,
+  u.country,
+  u.traffic_source,
+  IFNULL(ltv.lifetime_total_value, 0) AS lifetime_total_value,
+  IFNULL(toc.total_order_count, 0) AS total_order_count,
+  IFNULL(ltv.lifetime_total_value / NULLIF(toc.total_order_count, 0), 0) AS average_order_value,
+  fc.favorite_category,
+  fb.favorite_browser
+FROM
+  thelook-product-recom-1.theLook.users u
+LEFT JOIN
+  LifetimeTotalValue ltv
+  ON u.id = ltv.user_id
+LEFT JOIN
+  TotalOrderCount toc
+  ON u.id = toc.user_id
+LEFT JOIN
+  FavoriteCategory fc
+  ON u.id = fc.user_id
+LEFT JOIN
+  FavoriteBrowser fb
+  ON u.id = fb.user_id;
