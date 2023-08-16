@@ -1,0 +1,11 @@
+CREATE OR REPLACE TABLE `thelook-product-recom-1.theLook.order_history` AS
+SELECT
+  user_id,
+  COUNT(order_id) AS total_orders,
+  AVG(num_of_item) AS avg_num_of_items,
+  AVG(TIMESTAMP_DIFF(delivered_at, created_at, DAY)) AS avg_shipping_time,
+  SUM(IF(status = 'returned', 1, 0)) / COUNT(order_id) AS return_rate
+FROM
+  `thelook-product-recom-1.theLook.orders`
+GROUP BY
+  user_id;
