@@ -1,0 +1,4 @@
+SELECT
+  *
+FROM
+  ML.EVALUATE(MODEL `thelook-product-recom-1.theLook.your_model`)
