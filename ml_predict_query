@@ -1,0 +1,9 @@
+CREATE MODEL `thelook-product-recom-1.theLook.kmeans_8`
+OPTIONS(MODEL_TYPE = 'KMEANS',
+    NUM_CLUSTERS = 8,  -- You can choose the optimal number of clusters based on the elbow method
+    KMEANS_INIT_METHOD = 'KMEANS++',
+    DISTANCE_TYPE = 'EUCLIDEAN',
+    STANDARDIZE_FEATURES = TRUE)
+AS
+SELECT * EXCEPT(user_id)  -- Assuming 'user_id' is not a feature
+FROM `thelook-product-recom-1.theLook.customer_features_preprocessed`;
