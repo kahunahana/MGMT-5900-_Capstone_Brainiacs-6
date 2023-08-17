@@ -1,0 +1,36 @@
+import functions_framework
+import requests
+from google.cloud import storage
+import traceback
+import json
+
+@functions_framework.http
+def fetch_and_store_data(request):
+    try:
+        url = "https://api.us-east.tinybird.co/v0/pipes/customer_features_pipe.json?token=p.eyJ1IjogImRiNmMzY2EwLTllN2MtNDY0OC04ZWZlLTg1OWYyOTA4YzEwZiIsICJpZCI6ICJjOTFkZjQ0MC00N2QwLTRiMzQtYWUwMi1iYzMzZmM2YzU4ZDMiLCAiaG9zdCI6ICJ1c19lYXN0In0.sY_S0MdXJEuEeWIcBMazlBEpomlelbZebPYHMm8-bm8"
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            return 'Failed to fetch data from the API endpoint', 500
+
+        # Extract the records
+        records = json.loads(response.text)
+        data_to_store = json.dumps(records)
+
+        # Initialize a GCS client
+        storage_client = storage.Client()
+        bucket_name = "customer_streaming_data"
+        bucket = storage_client.bucket(bucket_name)
+
+        # Define the file name and path in the bucket
+        file_name = "customer_features.json"
+        blob = bucket.blob(file_name)
+
+        # Write the data to the bucket
+        blob.upload_from_string(data_to_store, content_type='application/json')
+
+        return f'Data fetched and stored in {bucket_name}/{file_name}'
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        print(f"An error occurred: {e}\nTraceback: {traceback_str}")
+        return 'An internal error occurred', 500
